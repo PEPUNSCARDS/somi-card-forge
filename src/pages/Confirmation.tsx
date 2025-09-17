@@ -1,0 +1,123 @@
+import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { CheckCircle, Clock, Mail } from "lucide-react";
+
+const Confirmation = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // Show success toast on component mount
+    toast({
+      title: "Payment Successful!",
+      description: "Your card order has been confirmed.",
+      className: "bg-primary text-primary-foreground border-primary/20"
+    });
+  }, [toast]);
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center px-6 relative overflow-hidden">
+      {/* Background gradient */}
+      <div className="absolute inset-0 bg-gradient-glow opacity-30" />
+      
+      <Card className="card-premium max-w-lg w-full text-center animate-scale-in">
+        <div className="p-8 space-y-6">
+          {/* Success Icon */}
+          <div className="flex justify-center animate-fade-in">
+            <div className="relative">
+              <CheckCircle className="w-20 h-20 text-primary animate-glow-pulse" />
+              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+            </div>
+          </div>
+
+          {/* Heading */}
+          <h2 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent animate-slide-up">
+            Payment Submitted
+          </h2>
+
+          {/* Success Message */}
+          <div className="space-y-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <p className="text-lg text-foreground">
+              Your card has been processed successfully!
+            </p>
+            <p className="text-muted-foreground">
+              You will receive your card details and access via email within 24 hours.
+            </p>
+          </div>
+
+          {/* Timeline */}
+          <div className="bg-card/50 border border-border/30 rounded-xl p-6 space-y-4 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+            <h3 className="font-semibold text-foreground mb-4">What happens next?</h3>
+            
+            <div className="space-y-3 text-left">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                <span className="text-sm text-foreground">Payment confirmed and processed</span>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <Clock className="w-5 h-5 text-accent flex-shrink-0 animate-pulse" />
+                <span className="text-sm text-muted-foreground">Card generation in progress (24 hours)</span>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <Mail className="w-5 h-5 text-muted-foreground/50 flex-shrink-0" />
+                <span className="text-sm text-muted-foreground/50">Email delivery with card details</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Order Details */}
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 animate-fade-in" style={{ animationDelay: '0.6s' }}>
+            <h4 className="font-medium text-primary mb-2">Order Summary</h4>
+            <div className="text-sm space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Funding Amount:</span>
+                <span className="text-foreground">$100</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Insurance Fee:</span>
+                <span className="text-foreground">$20</span>
+              </div>
+              <div className="flex justify-between font-semibold border-t border-border/20 pt-2 mt-2">
+                <span>Total Paid:</span>
+                <span className="text-primary">$120 (~96.00 SOMI)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 animate-scale-in" style={{ animationDelay: '0.8s' }}>
+            <Button 
+              variant="gradient" 
+              size="lg" 
+              onClick={() => navigate('/')}
+              className="flex-1"
+            >
+              Back to Home
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="lg" 
+              onClick={() => navigate('/balance')}
+              className="flex-1"
+            >
+              Check Balance
+            </Button>
+          </div>
+
+          {/* Support Note */}
+          <p className="text-xs text-muted-foreground animate-fade-in" style={{ animationDelay: '1s' }}>
+            Need help? Contact support or check your balance anytime.
+          </p>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+export default Confirmation;
