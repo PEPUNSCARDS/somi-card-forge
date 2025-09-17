@@ -5,11 +5,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { Minus, Plus, Loader2 } from "lucide-react";
+import { Minus, Plus, Loader2, ArrowLeft, CreditCard, Wallet } from "lucide-react";
+import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
+import { parseEther } from 'viem';
+import { WalletConnect } from '@/components/WalletConnect';
+import { useSomiPrice } from '@/hooks/useSomiPrice';
 
 const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { address, isConnected } = useAccount();
+  const { sendTransaction, data: hash, isPending } = useSendTransaction();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  });
+  const { price: somiPrice, loading: priceLoading } = useSomiPrice();
   
   const [formData, setFormData] = useState({
     firstName: "",
@@ -17,29 +27,52 @@ const Register = () => {
     fundingAmount: 100
   });
   
-  const [somiPrice, setSomiPrice] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Calculate totals
   const insuranceFee = 20;
   const totalUSD = formData.fundingAmount + insuranceFee;
-  const somiTotal = somiPrice > 0 ? (totalUSD / somiPrice).toFixed(2) : "0.00";
+  const somiTotal = somiPrice > 0 ? (totalUSD / somiPrice).toFixed(4) : "0.0000";
+  const treasuryAddress = import.meta.env.VITE_TREASURY_ADDRESS || "0x742d35CC6aF5C8dd7F3E5C6D8bD5F7C2a1E5f8e";
 
-  // Fetch SOMI price from CoinGecko
+  // Watch for transaction success
   useEffect(() => {
-    const fetchSomiPrice = async () => {
-      try {
-        // Mock price for demo - replace with actual CoinGecko API
-        setSomiPrice(1.25); // $1.25 per SOMI
-      } catch (error) {
-        console.error("Failed to fetch SOMI price:", error);
-        setSomiPrice(1.25); // Fallback price
-      }
-    };
-    
-    fetchSomiPrice();
-  }, []);
+    if (isSuccess && hash) {
+      // Send notification to Telegram bot
+      sendTelegramNotification();
+    }
+  }, [isSuccess, hash]);
+
+  const sendTelegramNotification = async () => {
+    try {
+      // Mock telegram notification - replace with actual API
+      console.log('Sending Telegram notification:', {
+        firstName: formData.firstName,
+        email: formData.email,
+        amount: formData.fundingAmount,
+        transactionHash: hash,
+        walletAddress: address
+      });
+      
+      toast({
+        title: "Payment Confirmed!",
+        description: "Card processing initiated. Redirecting...",
+        className: "bg-primary text-primary-foreground"
+      });
+      
+      setTimeout(() => {
+        navigate('/confirmation');
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Failed to send Telegram notification:', error);
+      toast({
+        variant: "destructive",
+        title: "Notification Failed",
+        description: "Payment confirmed but notification failed"
+      });
+    }
+  };
 
   const handleFundingChange = (increment: boolean) => {
     setFormData(prev => {
@@ -78,7 +111,7 @@ const Register = () => {
     
     if (!validateForm()) return;
     
-    if (!isConnected) {
+    if (!isConnected || !address) {
       toast({
         variant: "destructive",
         title: "Wallet Required",
@@ -87,33 +120,44 @@ const Register = () => {
       return;
     }
 
-    setIsLoading(true);
+    if (somiPrice === 0) {
+      toast({
+        variant: "destructive",
+        title: "Price Loading",
+        description: "Please wait for SOMI price to load"
+      });
+      return;
+    }
+
+    setIsProcessing(true);
     
     try {
-      // Simulate API calls and payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Send SOMI to treasury address
+      const amountInSomi = parseEther(somiTotal);
       
+      sendTransaction({
+        to: treasuryAddress as `0x${string}`,
+        value: amountInSomi,
+      });
+
       toast({
-        title: "Payment Submitted!",
-        description: "Redirecting to confirmation...",
+        title: "Transaction Submitted!",
+        description: "Waiting for confirmation...",
         className: "bg-primary text-primary-foreground"
       });
       
-      // Redirect to confirmation
-      setTimeout(() => {
-        navigate('/confirmation');
-      }, 1500);
-      
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Payment failed:', error);
       toast({
         variant: "destructive",
         title: "Payment Failed",
-        description: "Please try again or contact support"
+        description: error?.message || "Please try again or contact support"
       });
-    } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
+
+  const isLoading = isPending || isConfirming || isProcessing;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-6 py-12 relative overflow-hidden">
@@ -122,6 +166,20 @@ const Register = () => {
       
       <Card className="card-premium max-w-md w-full animate-scale-in">
         <div className="p-8">
+          {/* Header with back button */}
+          <div className="flex items-center justify-between mb-6">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/')}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+            <CreditCard className="w-6 h-6 text-primary" />
+          </div>
+          
           <h2 className="text-3xl font-bold text-center mb-8 bg-gradient-primary bg-clip-text text-transparent">
             Order Your Card
           </h2>
@@ -203,22 +261,23 @@ const Register = () => {
                   Total: ${totalUSD} (~{somiTotal} SOMI)
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Send to: 0x742d...5f8e
+                  Send to: {treasuryAddress.slice(0, 6)}...{treasuryAddress.slice(-4)}
                 </p>
               </div>
             </div>
 
             {/* Wallet Connection */}
             <div className="space-y-4">
-              <Button
-                type="button"
-                variant={isConnected ? "premium" : "gradient"}
-                size="lg"
-                onClick={() => setIsConnected(!isConnected)}
-                className="w-full"
-              >
-                {isConnected ? "Wallet Connected (0x742d...5f8e)" : "Connect Wallet"}
-              </Button>
+              <Label className="text-foreground font-medium">
+                <Wallet className="w-4 h-4 inline mr-2" />
+                Wallet Connection
+              </Label>
+              <WalletConnect />
+              {isConnected && address && (
+                <p className="text-sm text-muted-foreground text-center">
+                  Connected: {address.slice(0, 6)}...{address.slice(-4)}
+                </p>
+              )}
             </div>
 
             {/* Submit Button */}
@@ -226,25 +285,33 @@ const Register = () => {
               type="submit"
               variant="gradient"
               size="lg"
-              disabled={isLoading || !isConnected}
+              disabled={isLoading || !isConnected || priceLoading}
               className="w-full sparkle"
             >
               {isLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  Processing Payment...
+                  {isPending ? "Confirming Transaction..." : 
+                   isConfirming ? "Waiting for Confirmation..." : 
+                   "Processing Payment..."}
                 </>
               ) : (
-                "Pay and Order Card"
+                <>
+                  <CreditCard className="w-5 h-5 mr-2" />
+                  Pay {somiTotal} SOMI
+                </>
               )}
             </Button>
           </form>
 
           {/* Security Notice */}
           <div className="mt-6 p-4 bg-primary/10 border border-primary/20 rounded-lg">
-            <p className="text-sm text-center text-primary-foreground/80">
-              🔒 Your payment is secured by blockchain technology
-            </p>
+            <div className="flex items-center justify-center gap-2">
+              <Wallet className="w-4 h-4 text-primary" />
+              <p className="text-sm text-center text-primary-foreground/80">
+                Your payment is secured by blockchain technology
+              </p>
+            </div>
           </div>
         </div>
       </Card>

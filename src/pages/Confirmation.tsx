@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, Clock, Mail } from "lucide-react";
+import { CheckCircle, Clock, Mail, ArrowLeft, CreditCard } from "lucide-react";
 
 const Confirmation = () => {
   const navigate = useNavigate();
@@ -25,6 +25,19 @@ const Confirmation = () => {
       
       <Card className="card-premium max-w-lg w-full text-center animate-scale-in">
         <div className="p-8 space-y-6">
+          {/* Header with navigation */}
+          <div className="flex items-center justify-between mb-6">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => window.location.href = '/'}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+            <CreditCard className="w-6 h-6 text-primary" />
+          </div>
           {/* Success Icon */}
           <div className="flex justify-center animate-fade-in">
             <div className="relative">

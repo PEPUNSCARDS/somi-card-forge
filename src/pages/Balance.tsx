@@ -1,35 +1,45 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Wallet, Mail, CheckCircle } from "lucide-react";
+import { Search, Wallet, Mail, CheckCircle, ArrowLeft, RefreshCw } from "lucide-react";
+import { useAccount, useBalance } from 'wagmi';
+import { WalletConnect } from '@/components/WalletConnect';
+import { formatEther } from 'viem';
 
 const Balance = () => {
   const { toast } = useToast();
+  const { address, isConnected } = useAccount();
+  const { data: balance, isLoading: balanceLoading, refetch: refetchBalance } = useBalance({
+    address: address,
+  });
   
   const [walletAddress, setWalletAddress] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
+
+  // Auto-fill wallet address when connected
+  useEffect(() => {
+    if (isConnected && address) {
+      setWalletAddress(address);
+    }
+  }, [isConnected, address]);
 
   const validateAddress = (address: string) => {
     const walletRegex = /^0x[a-fA-F0-9]{40}$/;
     return walletRegex.test(address);
   };
 
-  const handleWalletConnect = () => {
-    setIsConnected(!isConnected);
-    if (!isConnected) {
-      setWalletAddress("0x742d35CC6aF5C8dd7F3E5C6D8bD5F7C2a1E5f8e");
+  const handleRefreshBalance = () => {
+    if (isConnected) {
+      refetchBalance();
       toast({
-        title: "Wallet Connected",
-        description: "Address auto-filled from connected wallet",
+        title: "Balance Refreshed",
+        description: "Wallet balance updated",
         className: "bg-primary text-primary-foreground"
       });
-    } else {
-      setWalletAddress("");
     }
   };
 
@@ -82,7 +92,6 @@ const Balance = () => {
   const handleReset = () => {
     setRequestSent(false);
     setWalletAddress("");
-    setIsConnected(false);
   };
 
   if (requestSent) {
@@ -167,23 +176,52 @@ const Balance = () => {
       
       <Card className="card-premium max-w-md w-full animate-scale-in">
         <div className="p-8">
+          {/* Header with back button */}
+          <div className="flex items-center justify-between mb-6">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => window.location.href = '/'}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+            <Wallet className="w-6 h-6 text-primary" />
+          </div>
+          
           <h2 className="text-3xl font-bold text-center mb-8 bg-gradient-primary bg-clip-text text-transparent">
-            Request Balance
+            Check Balance
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Wallet Connection */}
             <div className="space-y-4">
-              <Button
-                type="button"
-                variant={isConnected ? "premium" : "outline"}
-                size="lg"
-                onClick={handleWalletConnect}
-                className="w-full"
-              >
-                <Wallet className="w-5 h-5 mr-2" />
-                {isConnected ? "Wallet Connected" : "Connect Wallet (Optional)"}
-              </Button>
+              <Label className="text-foreground font-medium">
+                <Wallet className="w-4 h-4 inline mr-2" />
+                Wallet Connection
+              </Label>
+              <WalletConnect />
+              
+              {/* Balance Display */}
+              {isConnected && balance && (
+                <div className="bg-card/50 border border-border/30 rounded-xl p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Current SOMI Balance:</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRefreshBalance}
+                      disabled={balanceLoading}
+                    >
+                      <RefreshCw className={`w-4 h-4 ${balanceLoading ? 'animate-spin' : ''}`} />
+                    </Button>
+                  </div>
+                  <div className="text-2xl font-bold text-primary mt-1">
+                    {formatEther(balance.value)} SOMI
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Wallet Address Input */}
