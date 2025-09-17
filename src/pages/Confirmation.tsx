@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, Clock, Mail, ArrowLeft, CreditCard } from "lucide-react";
+import { CheckCircle, Clock, Mail, ArrowLeft, CreditCard, Server, Zap } from "lucide-react";
 
 const Confirmation = () => {
   const navigate = useNavigate();
@@ -12,8 +12,8 @@ const Confirmation = () => {
   useEffect(() => {
     // Show success toast on component mount
     toast({
-      title: "Payment Successful!",
-      description: "Your card order has been confirmed.",
+      title: "Payment Confirmed!",
+      description: "Backend API processing initiated.",
       className: "bg-primary text-primary-foreground border-primary/20"
     });
   }, [toast]);
@@ -54,26 +54,31 @@ const Confirmation = () => {
           {/* Success Message */}
           <div className="space-y-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
             <p className="text-lg text-foreground">
-              Your card has been processed successfully!
+              Your transaction is confirmed on-chain!
             </p>
             <p className="text-muted-foreground">
-              You will receive your card details and access via email within 24 hours.
+              Backend API is processing your card. You'll receive details via email within 24 hours.
             </p>
           </div>
 
           {/* Timeline */}
           <div className="bg-card/50 border border-border/30 rounded-xl p-6 space-y-4 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-            <h3 className="font-semibold text-foreground mb-4">What happens next?</h3>
+            <h3 className="font-semibold text-foreground mb-4">Processing Status</h3>
             
             <div className="space-y-3 text-left">
               <div className="flex items-center gap-3">
                 <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
-                <span className="text-sm text-foreground">Payment confirmed and processed</span>
+                <span className="text-sm text-foreground">Transaction confirmed on Somnia blockchain</span>
               </div>
               
               <div className="flex items-center gap-3">
-                <Clock className="w-5 h-5 text-accent flex-shrink-0 animate-pulse" />
-                <span className="text-sm text-muted-foreground">Card generation in progress (24 hours)</span>
+                <Server className="w-5 h-5 text-accent flex-shrink-0 animate-pulse" />
+                <span className="text-sm text-accent">Backend API processing card generation</span>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <Clock className="w-5 h-5 text-muted-foreground/50 flex-shrink-0" />
+                <span className="text-sm text-muted-foreground/50">Automated processing (up to 24 hours)</span>
               </div>
               
               <div className="flex items-center gap-3">
@@ -124,9 +129,14 @@ const Confirmation = () => {
           </div>
 
           {/* Support Note */}
-          <p className="text-xs text-muted-foreground animate-fade-in" style={{ animationDelay: '1s' }}>
-            Need help? Contact support or check your balance anytime.
-          </p>
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 animate-fade-in" style={{ animationDelay: '1s' }}>
+            <div className="flex items-center justify-center gap-2">
+              <Shield className="w-5 h-5 text-primary" />
+              <p className="text-sm text-center text-foreground">
+                Your payment is secured by blockchain technology. Need help? Contact support or check your balance anytime.
+              </p>
+            </div>
+          </div>
         </div>
       </Card>
     </div>

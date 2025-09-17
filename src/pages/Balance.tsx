@@ -4,10 +4,11 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Wallet, Mail, CheckCircle, ArrowLeft, RefreshCw } from "lucide-react";
+import { Search, Wallet, Mail, CheckCircle, ArrowLeft, RefreshCw, Shield, Clock, Server } from "lucide-react";
 import { useAccount, useBalance } from 'wagmi';
 import { WalletConnect } from '@/components/WalletConnect';
 import { formatEther } from 'viem';
+import { backendAPIService } from '@/lib/backendAPI';
 
 const Balance = () => {
   const { toast } = useToast();
@@ -67,22 +68,26 @@ const Balance = () => {
     setIsLoading(true);
     
     try {
-      // Simulate API call to request balance
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Send balance request to Backend API
+      const success = await backendAPIService.requestBalance(walletAddress);
       
-      setRequestSent(true);
-      
-      toast({
-        title: "Balance Request Sent!",
-        description: "Check your email for balance information",
-        className: "bg-primary text-primary-foreground"
-      });
+      if (success) {
+        setRequestSent(true);
+        
+        toast({
+          title: "Balance Request Sent!",
+          description: "Backend API will process your request shortly",
+          className: "bg-primary text-primary-foreground"
+        });
+      } else {
+        throw new Error('Backend API request failed');
+      }
       
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Request Failed",
-        description: "Please try again or contact support"
+        description: "Failed to connect to Backend API. Please try again."
       });
     } finally {
       setIsLoading(false);
@@ -105,8 +110,8 @@ const Balance = () => {
             {/* Success Icon */}
             <div className="flex justify-center animate-fade-in">
               <div className="relative">
-                <Mail className="w-20 h-20 text-accent animate-glow-pulse" />
-                <div className="absolute inset-0 bg-accent/20 rounded-full blur-xl animate-pulse" />
+                <CheckCircle className="w-20 h-20 text-primary animate-glow-pulse" />
+                <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
               </div>
             </div>
 
@@ -116,18 +121,18 @@ const Balance = () => {
                 Request Sent!
               </h2>
               <p className="text-lg text-foreground">
-                Balance request submitted successfully
+                Backend API request submitted successfully
               </p>
               <p className="text-muted-foreground">
-                You will receive your current balance via email shortly.
+                You will receive your balance information via email shortly.
               </p>
             </div>
 
             {/* Request Details */}
             <div className="bg-card/50 border border-border/30 rounded-xl p-4 animate-fade-in" style={{ animationDelay: '0.3s' }}>
               <div className="flex items-center gap-3 mb-3">
-                <CheckCircle className="w-5 h-5 text-primary" />
-                <span className="font-medium text-foreground">Request Details</span>
+                <Server className="w-5 h-5 text-primary" />
+                <span className="font-medium text-foreground">Backend API Request</span>
               </div>
               <div className="text-sm space-y-2">
                 <div className="flex justify-between">
@@ -135,6 +140,10 @@ const Balance = () => {
                   <span className="text-foreground font-mono text-xs">
                     {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
                   </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">API Status:</span>
+                  <span className="text-primary">Processed</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Request Time:</span>
@@ -268,13 +277,13 @@ const Balance = () => {
           {/* Info Box */}
           <div className="mt-6 p-4 bg-accent/10 border border-accent/20 rounded-lg">
             <div className="flex items-start gap-3">
-              <Mail className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
+              <Server className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
               <div className="text-sm">
                 <p className="text-accent-foreground font-medium mb-1">
-                  Balance via Email
+                  Backend API Integration
                 </p>
                 <p className="text-muted-foreground">
-                  Your current card balance will be sent to the email address associated with your wallet.
+                  Your balance request will be processed by our Backend API and sent to your email.
                 </p>
               </div>
             </div>
@@ -282,9 +291,12 @@ const Balance = () => {
 
           {/* Security Note */}
           <div className="mt-4 p-3 bg-primary/10 border border-primary/20 rounded-lg">
-            <p className="text-xs text-center text-primary-foreground/80">
-              🔒 Your wallet address is used only for balance verification
-            </p>
+            <div className="flex items-center justify-center gap-2">
+              <Shield className="w-4 h-4 text-primary" />
+              <p className="text-xs text-center text-primary-foreground/80">
+                Your wallet address is used only for balance verification
+              </p>
+            </div>
           </div>
         </div>
       </Card>

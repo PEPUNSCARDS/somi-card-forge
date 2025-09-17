@@ -5,24 +5,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { Minus, Plus, Loader2, ArrowLeft, CreditCard, Wallet } from "lucide-react";
-import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
+import { Minus, Plus, Loader2, ArrowLeft, CreditCard, Wallet, Shield, Zap, Server } from "lucide-react";
+import { useAccount, useSendTransaction } from 'wagmi';
 import { parseEther } from 'viem';
 import { WalletConnect } from '@/components/WalletConnect';
 import { useSomiPrice } from '@/hooks/useSomiPrice';
+import { useTransactionMonitor } from '@/hooks/useTransactionMonitor';
+import { backendAPIService } from '@/lib/backendAPI';
 
 const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { address, isConnected } = useAccount();
   const { sendTransaction, data: hash, isPending } = useSendTransaction();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
-    hash,
-  });
   const { price: somiPrice, loading: priceLoading } = useSomiPrice();
   
   const [formData, setFormData] = useState({
     firstName: "",
+    lastName: "",
     email: "",
     fundingAmount: 100
   });
@@ -35,44 +35,62 @@ const Register = () => {
   const somiTotal = somiPrice > 0 ? (totalUSD / somiPrice).toFixed(4) : "0.0000";
   const treasuryAddress = import.meta.env.VITE_TREASURY_ADDRESS || "0x742d35CC6aF5C8dd7F3E5C6D8bD5F7C2a1E5f8e";
 
-  // Watch for transaction success
-  useEffect(() => {
-    if (isSuccess && hash) {
-      // Send notification to Telegram bot
-      sendTelegramNotification();
-    }
-  }, [isSuccess, hash]);
-
-  const sendTelegramNotification = async () => {
-    try {
-      // Mock telegram notification - replace with actual API
-      console.log('Sending Telegram notification:', {
-        firstName: formData.firstName,
-        email: formData.email,
-        amount: formData.fundingAmount,
-        transactionHash: hash,
-        walletAddress: address
-      });
-      
+  // Transaction monitoring with Telegram notifications
+  const { isSuccess, isConfirming } = useTransactionMonitor({
+    hash,
+    customerData: address ? {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      fundingAmount: formData.fundingAmount,
+      totalAmount: totalUSD,
+      somiAmount: somiTotal,
+      walletAddress: address
+    } : undefined,
+    onSuccess: () => {
       toast({
         title: "Payment Confirmed!",
-        description: "Card processing initiated. Redirecting...",
+        description: "Processing with Backend API. Redirecting...",
         className: "bg-primary text-primary-foreground"
       });
       
       setTimeout(() => {
         navigate('/confirmation');
       }, 2000);
-      
-    } catch (error) {
-      console.error('Failed to send Telegram notification:', error);
+    },
+    onError: (error) => {
+      console.error('Transaction failed:', error);
       toast({
         variant: "destructive",
-        title: "Notification Failed",
-        description: "Payment confirmed but notification failed"
+        title: "Transaction Failed",
+        description: error?.message || "Please try again or contact support"
       });
+      setIsProcessing(false);
     }
+  });
+
+  // Send initial notification when transaction is submitted - NO LONGER USED
+  // Only send notifications AFTER on-chain confirmation
+  const sendInitialNotification = async (transactionHash: string) => {
+    // This function is deprecated - we only notify after on-chain confirmation
+    console.log('Transaction submitted:', transactionHash, '- Waiting for on-chain confirmation before Backend API notification');
   };
+
+  // Watch for transaction success
+  useEffect(() => {
+    if (isSuccess && hash) {
+      // Transaction monitoring hook handles the Backend API notification
+      // Only after on-chain confirmation
+    }
+  }, [isSuccess, hash]);
+
+  // No longer send initial notifications - only after on-chain confirmation
+  useEffect(() => {
+    if (hash && address && formData.firstName && formData.lastName) {
+      console.log('Transaction submitted to blockchain:', hash);
+      console.log('Waiting for on-chain confirmation before Backend API notification...');
+    }
+  }, [hash, address, formData.firstName, formData.lastName]);
 
   const handleFundingChange = (increment: boolean) => {
     setFormData(prev => {
@@ -89,6 +107,15 @@ const Register = () => {
         variant: "destructive",
         title: "Error",
         description: "First name is required"
+      });
+      return false;
+    }
+    
+    if (!formData.lastName.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Last name is required"
       });
       return false;
     }
@@ -142,7 +169,7 @@ const Register = () => {
 
       toast({
         title: "Transaction Submitted!",
-        description: "Waiting for confirmation...",
+        description: "Waiting for blockchain confirmation...",
         className: "bg-primary text-primary-foreground"
       });
       
@@ -185,20 +212,39 @@ const Register = () => {
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* First Name */}
-            <div className="space-y-2">
-              <Label htmlFor="firstName" className="text-foreground font-medium">
-                First Name *
-              </Label>
-              <Input
-                id="firstName"
-                type="text"
-                placeholder="Enter your first name"
-                value={formData.firstName}
-                onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                className="input-premium"
-                required
-              />
+            {/* Name Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* First Name */}
+              <div className="space-y-2">
+                <Label htmlFor="firstName" className="text-foreground font-medium">
+                  First Name *
+                </Label>
+                <Input
+                  id="firstName"
+                  type="text"
+                  placeholder="Enter first name"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                  className="input-premium"
+                  required
+                />
+              </div>
+              
+              {/* Last Name */}
+              <div className="space-y-2">
+                <Label htmlFor="lastName" className="text-foreground font-medium">
+                  Last Name *
+                </Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  placeholder="Enter last name"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                  className="input-premium"
+                  required
+                />
+              </div>
             </div>
 
             {/* Email */}
@@ -307,9 +353,19 @@ const Register = () => {
           {/* Security Notice */}
           <div className="mt-6 p-4 bg-primary/10 border border-primary/20 rounded-lg">
             <div className="flex items-center justify-center gap-2">
-              <Wallet className="w-4 h-4 text-primary" />
+              <Shield className="w-5 h-5 text-primary" />
               <p className="text-sm text-center text-primary-foreground/80">
                 Your payment is secured by blockchain technology
+              </p>
+            </div>
+          </div>
+          
+          {/* Backend API Status */}
+          <div className="mt-4 p-4 bg-accent/10 border border-accent/20 rounded-lg">
+            <div className="flex items-center justify-center gap-2">
+              <Server className="w-5 h-5 text-accent" />
+              <p className="text-sm text-center text-accent-foreground/80">
+                Connected to Backend API for automated processing
               </p>
             </div>
           </div>
