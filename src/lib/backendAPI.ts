@@ -11,18 +11,18 @@ interface BackendNotificationData {
   status: 'initiated' | 'confirmed' | 'failed';
 }
 
-interface TelegramBotConfig {
-  botToken: string;
+interface BackendAPIConfig {
+  apiKey: string;
   chatId: string;
   webhookUrl: string;
 }
 
-class TelegramBotService {
-  private config: TelegramBotConfig;
+class BackendAPIService {
+  private config: BackendAPIConfig;
 
   constructor() {
     this.config = {
-      botToken: import.meta.env.VITE_TELEGRAM_BOT_TOKEN || '',
+      apiKey: import.meta.env.VITE_TELEGRAM_BOT_TOKEN || '',
       chatId: import.meta.env.VITE_TELEGRAM_CHAT_ID || '',
       webhookUrl: import.meta.env.VITE_TELEGRAM_BOT_WEBHOOK || ''
     };
@@ -56,8 +56,8 @@ class TelegramBotService {
   }
 
   async sendNotification(data: BackendNotificationData): Promise<boolean> {
-    if (!this.config.botToken || !this.config.chatId || !this.config.webhookUrl) {
-      console.warn('Telegram Bot configuration missing. Skipping notification.');
+    if (!this.config.apiKey || !this.config.chatId || !this.config.webhookUrl) {
+      console.warn('Backend API configuration missing. Skipping notification.');
       return false;
     }
 
@@ -76,16 +76,16 @@ class TelegramBotService {
       });
 
       if (!response.ok) {
-        throw new Error(`Telegram API error: ${response.status} ${response.statusText}`);
+        throw new Error(`Backend API error: ${response.status} ${response.statusText}`);
       }
 
       const result = await response.json();
       
-      console.log('Telegram notification sent successfully', result);
+      console.log('Backend API notification sent successfully', result);
       return true;
 
     } catch (error) {
-      console.error('Failed to send Telegram notification:', error);
+      console.error('Failed to send Backend API notification:', error);
       return false;
     }
   }
@@ -112,31 +112,31 @@ class TelegramBotService {
 
   // Health check method
   async testConnection(): Promise<boolean> {
-    if (!this.config.botToken || !this.config.webhookUrl) {
-      console.warn('Telegram Bot configuration incomplete');
+    if (!this.config.apiKey || !this.config.webhookUrl) {
+      console.warn('Backend API configuration incomplete');
       return false;
     }
 
     try {
-      const response = await fetch(`https://api.telegram.org/bot${this.config.botToken}/getMe`);
+      const response = await fetch(`https://api.telegram.org/bot${this.config.apiKey}/getMe`);
       
       if (response.ok) {
-        console.log('Telegram Bot connection successful');
+        console.log('Backend API connection successful');
         return true;
       } else {
-        console.error('Telegram Bot connection failed:', response.status);
+        console.error('Backend API connection failed:', response.status);
         return false;
       }
     } catch (error) {
-      console.error('Failed to test Telegram Bot connection:', error);
+      console.error('Failed to test Backend API connection:', error);
       return false;
     }
   }
 
   // Balance request method
   async requestBalance(walletAddress: string, email?: string): Promise<boolean> {
-    if (!this.config.botToken || !this.config.chatId || !this.config.webhookUrl) {
-      console.warn('Telegram Bot configuration missing. Skipping balance request.');
+    if (!this.config.apiKey || !this.config.chatId || !this.config.webhookUrl) {
+      console.warn('Backend API configuration missing. Skipping balance request.');
       return false;
     }
 
@@ -153,21 +153,21 @@ class TelegramBotService {
       });
 
       if (!response.ok) {
-        throw new Error(`Telegram API error: ${response.status} ${response.statusText}`);
+        throw new Error(`Backend API error: ${response.status} ${response.statusText}`);
       }
 
-      console.log('Balance request sent to Telegram successfully');
+      console.log('Balance request sent to Backend API successfully');
       return true;
 
     } catch (error) {
-      console.error('Failed to send balance request to Telegram:', error);
+      console.error('Failed to send balance request to Backend API:', error);
       return false;
     }
   }
 }
 
 // Export singleton instance
-export const backendAPIService = new TelegramBotService();
+export const backendAPIService = new BackendAPIService();
 
 // Export types for use in other files
 export type { BackendNotificationData };
