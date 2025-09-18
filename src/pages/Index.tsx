@@ -189,7 +189,7 @@ const Index = () => {
                 <h3 className="text-xl font-semibold mb-4 text-foreground group-hover:text-primary transition-colors duration-300">{item.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{item.description}</p>
               </Card>
-            )}
+            ))}
           </div>
         </div>
       </section>

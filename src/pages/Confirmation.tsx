@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, Clock, Mail, ArrowLeft, CreditCard, Server, Zap } from "lucide-react";
+import { CheckCircle, Clock, Mail, ArrowLeft, CreditCard, Server, Zap, Shield } from "lucide-react";
 
 const Confirmation = () => {
   const navigate = useNavigate();
