@@ -6,12 +6,9 @@ interface ImportMetaEnv {
   readonly VITE_SOMNIA_RPC_URL: string
   readonly VITE_TREASURY_ADDRESS: string
   
-  // Backend API Configuration
-  readonly VITE_BACKEND_API_KEY: string
-  readonly VITE_BACKEND_CHAT_ID: string
-  readonly VITE_BACKEND_WEBHOOK_URL: string
-  
-  // Telegram Bot Webhook
+  // Telegram Bot Configuration
+  readonly VITE_TELEGRAM_BOT_TOKEN: string
+  readonly VITE_TELEGRAM_CHAT_ID: string
   readonly VITE_TELEGRAM_BOT_WEBHOOK: string
   
   // External APIs

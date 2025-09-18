@@ -68,7 +68,7 @@ const Balance = () => {
     setIsLoading(true);
     
     try {
-      // Send balance request to Backend API
+      // Send balance request
       const success = await backendAPIService.requestBalance(walletAddress);
       
       if (success) {
@@ -76,18 +76,18 @@ const Balance = () => {
         
         toast({
           title: "Balance Request Sent!",
-          description: "Backend API will process your request shortly",
+          description: "Your request will be processed shortly",
           className: "bg-primary text-primary-foreground"
         });
       } else {
-        throw new Error('Backend API request failed');
+        throw new Error('Request failed');
       }
       
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Request Failed",
-        description: "Failed to connect to Backend API. Please try again."
+        description: "Failed to process request. Please try again."
       });
     } finally {
       setIsLoading(false);
@@ -121,7 +121,7 @@ const Balance = () => {
                 Request Sent!
               </h2>
               <p className="text-lg text-foreground">
-                Backend API request submitted successfully
+                Request submitted successfully
               </p>
               <p className="text-muted-foreground">
                 You will receive your balance information via email shortly.
@@ -132,7 +132,7 @@ const Balance = () => {
             <div className="bg-card/50 border border-border/30 rounded-xl p-4 animate-fade-in" style={{ animationDelay: '0.3s' }}>
               <div className="flex items-center gap-3 mb-3">
                 <Server className="w-5 h-5 text-primary" />
-                <span className="font-medium text-foreground">Backend API Request</span>
+                <span className="font-medium text-foreground">Balance Request</span>
               </div>
               <div className="text-sm space-y-2">
                 <div className="flex justify-between">

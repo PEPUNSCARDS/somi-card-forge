@@ -13,7 +13,7 @@ const Confirmation = () => {
     // Show success toast on component mount
     toast({
       title: "Payment Confirmed!",
-      description: "Backend API processing initiated.",
+      description: "Processing initiated.",
       className: "bg-primary text-primary-foreground border-primary/20"
     });
   }, [toast]);
@@ -57,7 +57,7 @@ const Confirmation = () => {
               Your transaction is confirmed on-chain!
             </p>
             <p className="text-muted-foreground">
-              Backend API is processing your card. You'll receive details via email within 24 hours.
+              Your card is being processed. You'll receive details via email within 24 hours.
             </p>
           </div>
 
@@ -73,7 +73,7 @@ const Confirmation = () => {
               
               <div className="flex items-center gap-3">
                 <Server className="w-5 h-5 text-accent flex-shrink-0 animate-pulse" />
-                <span className="text-sm text-accent">Backend API processing card generation</span>
+                <span className="text-sm text-accent">Processing card generation</span>
               </div>
               
               <div className="flex items-center gap-3">

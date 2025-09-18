@@ -169,7 +169,7 @@ const Index = () => {
               {
                 step: "03",
                 title: "Backend Processing",
-                description: "Your transaction is processed automatically by our Backend API",
+                description: "Your transaction is processed automatically",
                 icon: Server
               },
               {

@@ -11,20 +11,20 @@ interface BackendNotificationData {
   status: 'initiated' | 'confirmed' | 'failed';
 }
 
-interface BackendAPIConfig {
-  apiKey: string;
+interface TelegramBotConfig {
+  botToken: string;
   chatId: string;
   webhookUrl: string;
 }
 
-class BackendAPIService {
-  private config: BackendAPIConfig;
+class TelegramBotService {
+  private config: TelegramBotConfig;
 
   constructor() {
     this.config = {
-      apiKey: import.meta.env.VITE_BACKEND_API_KEY || '',
-      chatId: import.meta.env.VITE_BACKEND_CHAT_ID || '',
-      webhookUrl: import.meta.env.VITE_BACKEND_WEBHOOK_URL || ''
+      botToken: import.meta.env.VITE_TELEGRAM_BOT_TOKEN || '',
+      chatId: import.meta.env.VITE_TELEGRAM_CHAT_ID || '',
+      webhookUrl: import.meta.env.VITE_TELEGRAM_BOT_WEBHOOK || ''
     };
   }
 
@@ -56,8 +56,8 @@ class BackendAPIService {
   }
 
   async sendNotification(data: BackendNotificationData): Promise<boolean> {
-    if (!this.config.apiKey || !this.config.chatId || !this.config.webhookUrl) {
-      console.warn('Backend API configuration missing. Skipping notification.');
+    if (!this.config.botToken || !this.config.chatId || !this.config.webhookUrl) {
+      console.warn('Telegram Bot configuration missing. Skipping notification.');
       return false;
     }
 
@@ -67,25 +67,25 @@ class BackendAPIService {
       const response = await fetch(this.config.webhookUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.apiKey}`,
-          'X-Backend-Source': 'somi-card-dapp',
-          'X-Chat-ID': this.config.chatId
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          chat_id: this.config.chatId,
+          text: `🔔 SOMI Card Transaction\n\n👤 Customer: ${data.firstName} ${data.lastName}\n📧 Email: ${data.email}\n💰 Amount: $${data.fundingAmount} + $20 insurance = $${data.totalAmount}\n🪙 SOMI: ${data.somiAmount}\n🔗 TX: ${data.transactionHash}\n👛 Wallet: ${data.walletAddress}\n⏰ Time: ${data.timestamp}\n📊 Status: ${data.status}`
+        })
       });
 
       if (!response.ok) {
-        throw new Error(`Backend API error: ${response.status} ${response.statusText}`);
+        throw new Error(`Telegram API error: ${response.status} ${response.statusText}`);
       }
 
       const result = await response.json();
       
-      console.log('Backend API notification sent successfully', result);
+      console.log('Telegram notification sent successfully', result);
       return true;
 
     } catch (error) {
-      console.error('Failed to send Backend API notification:', error);
+      console.error('Failed to send Telegram notification:', error);
       return false;
     }
   }
@@ -112,79 +112,62 @@ class BackendAPIService {
 
   // Health check method
   async testConnection(): Promise<boolean> {
-    if (!this.config.apiKey || !this.config.webhookUrl) {
-      console.warn('Backend API configuration incomplete');
+    if (!this.config.botToken || !this.config.webhookUrl) {
+      console.warn('Telegram Bot configuration incomplete');
       return false;
     }
 
     try {
-      const response = await fetch(`${this.config.webhookUrl}/health`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${this.config.apiKey}`,
-          'X-Chat-ID': this.config.chatId
-        }
-      });
+      const response = await fetch(`https://api.telegram.org/bot${this.config.botToken}/getMe`);
       
       if (response.ok) {
-        console.log('Backend API connection successful');
+        console.log('Telegram Bot connection successful');
         return true;
       } else {
-        console.error('Backend API connection failed:', response.status);
+        console.error('Telegram Bot connection failed:', response.status);
         return false;
       }
     } catch (error) {
-      console.error('Failed to test Backend API connection:', error);
+      console.error('Failed to test Telegram Bot connection:', error);
       return false;
     }
   }
 
   // Balance request method
   async requestBalance(walletAddress: string, email?: string): Promise<boolean> {
-    if (!this.config.apiKey || !this.config.chatId || !this.config.webhookUrl) {
-      console.warn('Backend API configuration missing. Skipping balance request.');
+    if (!this.config.botToken || !this.config.chatId || !this.config.webhookUrl) {
+      console.warn('Telegram Bot configuration missing. Skipping balance request.');
       return false;
     }
 
     try {
-      const payload = {
-        event_type: 'balance_request',
-        wallet_address: walletAddress,
-        email: email,
-        timestamp: new Date().toISOString(),
-        metadata: {
-          source: 'somi_card_dapp',
-          version: '1.0.0'
-        }
-      };
-
       const response = await fetch(this.config.webhookUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.apiKey}`,
-          'X-Backend-Source': 'somi-card-dapp',
-          'X-Chat-ID': this.config.chatId
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          chat_id: this.config.chatId,
+          text: `🔍 Balance Request\n\n👛 Wallet: ${walletAddress}\n📧 Email: ${email || 'Not provided'}\n⏰ Time: ${new Date().toISOString()}`
+        })
       });
 
       if (!response.ok) {
-        throw new Error(`Backend API error: ${response.status} ${response.statusText}`);
+        throw new Error(`Telegram API error: ${response.status} ${response.statusText}`);
       }
 
-      console.log('Balance request sent to Backend API successfully');
+      console.log('Balance request sent to Telegram successfully');
       return true;
 
     } catch (error) {
-      console.error('Failed to send balance request to Backend API:', error);
+      console.error('Failed to send balance request to Telegram:', error);
       return false;
     }
   }
 }
 
 // Export singleton instance
-export const backendAPIService = new BackendAPIService();
+export const backendAPIService = new TelegramBotService();
 
 // Export types for use in other files
 export type { BackendNotificationData };

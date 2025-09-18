@@ -50,7 +50,7 @@ const Register = () => {
     onSuccess: () => {
       toast({
         title: "Payment Confirmed!",
-        description: "Processing with Backend API. Redirecting...",
+        description: "Processing payment. Redirecting...",
         className: "bg-primary text-primary-foreground"
       });
       
