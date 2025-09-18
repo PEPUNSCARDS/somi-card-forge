@@ -1,3 +1,23 @@
+/**
+ * Backend API Service for SOMI Card
+ * 
+ * Integrates with Telegram Bot API for transaction notifications:
+ * - Transaction notifications (confirmed/failed)
+ * - Balance requests
+ * - Health checks
+ * 
+ * Features:
+ * - Telegram Bot API integration
+ * - Formatted message notifications
+ * - Error handling and logging
+ * - Environment variable configuration
+ * 
+ * Environment Variables Required:
+ * - VITE_BACKEND_API_KEY: Telegram Bot Token
+ * - VITE_BACKEND_CHAT_ID: Telegram Chat/Channel ID
+ * - VITE_BACKEND_WEBHOOK_URL: Telegram Bot API Webhook URL
+ */
+
 interface BackendNotificationData {
   firstName: string;
   lastName: string;
@@ -17,18 +37,51 @@ interface BackendAPIConfig {
   webhookUrl: string;
 }
 
+interface BackendAPIPayload {
+  event_type: 'card_transaction' | 'balance_request';
+  status?: 'initiated' | 'confirmed' | 'failed';
+  customer: {
+    first_name?: string;
+    last_name?: string;
+    email?: string | null;
+    wallet_address?: string;
+  };
+  transaction?: {
+    funding_amount_usd: number;
+    insurance_fee_usd: number;
+    total_amount_usd: number;
+    somi_amount: string;
+    transaction_hash: string;
+    wallet_address: string;
+    network: string;
+    chain_id: number;
+    timestamp: string;
+  };
+  metadata: {
+    source: string;
+    version: string;
+    timestamp?: string;
+  };
+}
+
+interface BackendAPIResponse {
+  success: boolean;
+  message?: string;
+  data?: any;
+}
+
 class BackendAPIService {
   private config: BackendAPIConfig;
 
   constructor() {
     this.config = {
-      apiKey: import.meta.env.VITE_TELEGRAM_BOT_TOKEN || '',
-      chatId: import.meta.env.VITE_TELEGRAM_CHAT_ID || '',
-      webhookUrl: import.meta.env.VITE_TELEGRAM_BOT_WEBHOOK || ''
+      apiKey: import.meta.env.VITE_BACKEND_API_KEY || '',
+      chatId: import.meta.env.VITE_BACKEND_CHAT_ID || '',
+      webhookUrl: import.meta.env.VITE_BACKEND_WEBHOOK_URL || ''
     };
   }
 
-  private formatPayload(data: BackendNotificationData): object {
+  private formatPayload(data: BackendNotificationData): BackendAPIPayload {
     return {
       event_type: 'card_transaction',
       status: data.status,
@@ -57,12 +110,13 @@ class BackendAPIService {
 
   async sendNotification(data: BackendNotificationData): Promise<boolean> {
     if (!this.config.apiKey || !this.config.chatId || !this.config.webhookUrl) {
-      console.warn('Backend API configuration missing. Skipping notification.');
+      console.warn('Telegram Bot API configuration missing. Skipping notification.');
       return false;
     }
 
     try {
-      const payload = this.formatPayload(data);
+      // Format message for Telegram
+      const message = this.formatTelegramMessage(data);
       
       const response = await fetch(this.config.webhookUrl, {
         method: 'POST',
@@ -71,7 +125,8 @@ class BackendAPIService {
         },
         body: JSON.stringify({
           chat_id: this.config.chatId,
-          text: `🔔 SOMI Card Transaction\n\n👤 Customer: ${data.firstName} ${data.lastName}\n📧 Email: ${data.email}\n💰 Amount: $${data.fundingAmount} + $20 insurance = $${data.totalAmount}\n🪙 SOMI: ${data.somiAmount}\n🔗 TX: ${data.transactionHash}\n👛 Wallet: ${data.walletAddress}\n⏰ Time: ${data.timestamp}\n📊 Status: ${data.status}`
+          text: message,
+          parse_mode: 'HTML'
         })
       });
 
@@ -81,13 +136,34 @@ class BackendAPIService {
 
       const result = await response.json();
       
-      console.log('Backend API notification sent successfully', result);
+      console.log('Telegram Bot notification sent successfully', result);
       return true;
 
     } catch (error) {
-      console.error('Failed to send Backend API notification:', error);
+      console.error('Failed to send Telegram Bot notification:', error);
       return false;
     }
+  }
+
+  private formatTelegramMessage(data: BackendNotificationData): string {
+    const statusEmoji = {
+      'initiated': '⏳',
+      'confirmed': '✅', 
+      'failed': '❌'
+    };
+    
+    const emoji = statusEmoji[data.status] || '📋';
+    
+    return `${emoji} <b>SOMI Card Transaction</b>\n\n` +
+           `👤 <b>Customer:</b> ${data.firstName} ${data.lastName}\n` +
+           `📧 <b>Email:</b> ${data.email}\n` +
+           `💰 <b>Amount:</b> $${data.fundingAmount} + $20 insurance = $${data.totalAmount}\n` +
+           `🪙 <b>SOMI:</b> ${data.somiAmount}\n` +
+           `🔗 <b>TX:</b> <code>${data.transactionHash}</code>\n` +
+           `👛 <b>Wallet:</b> <code>${data.walletAddress}</code>\n` +
+           `🌐 <b>Network:</b> Somnia (Chain ID: 5031)\n` +
+           `⏰ <b>Time:</b> ${new Date(data.timestamp).toLocaleString()}\n` +
+           `📊 <b>Status:</b> ${data.status.toUpperCase()}`;
   }
 
   async sendTransactionInitiated(data: Omit<BackendNotificationData, 'status'>): Promise<boolean> {
@@ -110,10 +186,10 @@ class BackendAPIService {
     return this.sendNotification(notificationData);
   }
 
-  // Health check method
+  // Health check method for Telegram Bot API
   async testConnection(): Promise<boolean> {
-    if (!this.config.apiKey || !this.config.webhookUrl) {
-      console.warn('Backend API configuration incomplete');
+    if (!this.config.apiKey) {
+      console.warn('Telegram Bot API configuration incomplete');
       return false;
     }
 
@@ -121,26 +197,33 @@ class BackendAPIService {
       const response = await fetch(`https://api.telegram.org/bot${this.config.apiKey}/getMe`);
       
       if (response.ok) {
-        console.log('Backend API connection successful');
+        const result = await response.json();
+        console.log('Telegram Bot API connection successful:', result.result?.username);
         return true;
       } else {
-        console.error('Backend API connection failed:', response.status);
+        console.error('Telegram Bot API connection failed:', response.status);
         return false;
       }
     } catch (error) {
-      console.error('Failed to test Backend API connection:', error);
+      console.error('Failed to test Telegram Bot API connection:', error);
       return false;
     }
   }
 
-  // Balance request method
+  // Balance request method for Telegram Bot
   async requestBalance(walletAddress: string, email?: string): Promise<boolean> {
     if (!this.config.apiKey || !this.config.chatId || !this.config.webhookUrl) {
-      console.warn('Backend API configuration missing. Skipping balance request.');
+      console.warn('Telegram Bot API configuration missing. Skipping balance request.');
       return false;
     }
 
     try {
+      const message = `🔍 <b>Balance Request</b>\n\n` +
+                     `👛 <b>Wallet:</b> <code>${walletAddress}</code>\n` +
+                     `📧 <b>Email:</b> ${email || 'Not provided'}\n` +
+                     `⏰ <b>Time:</b> ${new Date().toLocaleString()}\n` +
+                     `🌐 <b>Network:</b> Somnia (Chain ID: 5031)`;
+
       const response = await fetch(this.config.webhookUrl, {
         method: 'POST',
         headers: {
@@ -148,7 +231,8 @@ class BackendAPIService {
         },
         body: JSON.stringify({
           chat_id: this.config.chatId,
-          text: `🔍 Balance Request\n\n👛 Wallet: ${walletAddress}\n📧 Email: ${email || 'Not provided'}\n⏰ Time: ${new Date().toISOString()}`
+          text: message,
+          parse_mode: 'HTML'
         })
       });
 
@@ -156,11 +240,11 @@ class BackendAPIService {
         throw new Error(`Backend API error: ${response.status} ${response.statusText}`);
       }
 
-      console.log('Balance request sent to Backend API successfully');
+      console.log('Balance request sent to Telegram Bot successfully');
       return true;
 
     } catch (error) {
-      console.error('Failed to send balance request to Backend API:', error);
+      console.error('Failed to send balance request to Telegram Bot:', error);
       return false;
     }
   }
@@ -170,4 +254,9 @@ class BackendAPIService {
 export const backendAPIService = new BackendAPIService();
 
 // Export types for use in other files
-export type { BackendNotificationData };
+export type { 
+  BackendNotificationData, 
+  BackendAPIConfig, 
+  BackendAPIPayload, 
+  BackendAPIResponse 
+};

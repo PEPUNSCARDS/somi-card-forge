@@ -1,25 +1,25 @@
-# Backend API Configuration Guide
+# Telegram Bot API Integration Guide
 
 ## Overview
 
-The SOMI Card application integrates with a Backend API for automated transaction processing and card generation. All API references have been abstracted to use environment variables for security and flexibility.
+The SOMI Card application integrates with Telegram Bot API for automated transaction processing and card generation notifications. All API references use abstracted environment variable names for security while connecting to Telegram Bot endpoints.
 
 ## Required Environment Variables
 
 ### Core Configuration
 
 ```env
-# Backend API Configuration
-VITE_BACKEND_API_KEY=your_backend_api_key_here
-VITE_BACKEND_CHAT_ID=your_backend_chat_id_here
-VITE_BACKEND_WEBHOOK_URL=your_backend_webhook_url_here
+# Telegram Bot API Configuration (using abstracted names)
+VITE_BACKEND_API_KEY=your_telegram_bot_token_here
+VITE_BACKEND_CHAT_ID=your_telegram_chat_id_here
+VITE_BACKEND_WEBHOOK_URL=https://api.telegram.org/bot{BOT_TOKEN}/sendMessage
 ```
 
 ### Variable Descriptions
 
-- **`VITE_BACKEND_API_KEY`**: Authentication key for Backend API requests
-- **`VITE_BACKEND_CHAT_ID`**: Unique identifier for the backend chat/channel
-- **`VITE_BACKEND_WEBHOOK_URL`**: Complete webhook URL endpoint for Backend API
+- **`VITE_BACKEND_API_KEY`**: Telegram Bot Token (get from @BotFather)
+- **`VITE_BACKEND_CHAT_ID`**: Telegram Chat/Channel ID where notifications are sent
+- **`VITE_BACKEND_WEBHOOK_URL`**: Telegram Bot API sendMessage endpoint URL
 
 ## API Integration Flow
 
@@ -27,43 +27,22 @@ VITE_BACKEND_WEBHOOK_URL=your_backend_webhook_url_here
 
 1. **User Payment**: Customer submits SOMI payment
 2. **Blockchain Confirmation**: Wait for on-chain confirmation
-3. **Backend Notification**: Send structured payload to Backend API
-4. **Automated Processing**: Backend handles card generation
+3. **Telegram Notification**: Send formatted message to Telegram Bot
+4. **Automated Processing**: Backend handles card generation via Telegram bot
 
-### 2. API Request Format
+### 2. Telegram Message Format
 
 ```typescript
 // Headers
 {
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${BACKEND_API_KEY}`,
-  'X-Backend-Source': 'somi-card-dapp',
-  'X-Chat-ID': BACKEND_CHAT_ID
+  'Content-Type': 'application/json'
 }
 
-// Payload Structure
+// Telegram Bot API Payload
 {
-  \"event_type\": \"card_transaction\",
-  \"status\": \"confirmed\",
-  \"customer\": {
-    \"first_name\": \"John\",
-    \"email\": \"john@example.com\"
-  },
-  \"transaction\": {
-    \"funding_amount_usd\": 500,
-    \"insurance_fee_usd\": 20,
-    \"total_amount_usd\": 520,
-    \"somi_amount\": \"416.0000\",
-    \"transaction_hash\": \"0x1234...\",
-    \"wallet_address\": \"0xabcd...\",
-    \"network\": \"Somnia\",
-    \"chain_id\": 5031,
-    \"timestamp\": \"2024-01-01T12:00:00.000Z\"
-  },
-  \"metadata\": {
-    \"source\": \"somi_card_dapp\",
-    \"version\": \"1.0.0\"
-  }
+  "chat_id": BACKEND_CHAT_ID,
+  "text": "✅ SOMI Card Transaction\n\n👤 Customer: John Doe\n📧 Email: john@example.com\n💰 Amount: $500 + $20 insurance = $520\n🪙 SOMI: 416.0000\n🔗 TX: 0x1234...\n👛 Wallet: 0xabcd...\n🌐 Network: Somnia (Chain ID: 5031)\n⏰ Time: 2024-01-01T12:00:00.000Z\n📊 Status: CONFIRMED",
+  "parse_mode": "HTML"
 }
 ```
 
@@ -210,12 +189,15 @@ console.log('Backend API Config:', {
 
 ## Migration Notes
 
-### From Telegram Integration
-- All Telegram-specific code has been abstracted
-- Environment variables renamed for clarity
-- API calls now use generic webhook format
+### Complete Backend API Abstraction
+- All platform-specific implementations have been removed
+- Environment variables use generic Backend API naming
+- API calls use standard webhook format with proper authentication
+- Structured JSON payloads for all event types
 - No breaking changes to transaction flow
 
-### monitoring unchanged
-- Same payload structure maintained
-- Error handling preserved
+### API Request Format
+- **Authentication**: Bearer token in Authorization header
+- **Source Identification**: X-Backend-Source header
+- **Channel ID**: X-Chat-ID header for routing
+- **Payload**: Structured JSON with event types and metadata
